@@ -34,6 +34,8 @@ int * getReferenceString(int str_len, int max_pages, float prob) {
 }
 
 int main() {
+
+    printf("PID = %d\n", getpid());
     int shmid, msgid;
     srand(time(NULL));
 
@@ -103,14 +105,16 @@ int main() {
     if (fork() == 0) {
     // child process to execute scheduler using exec
 	// pass MQ1 and MQ2 to scheduler
-    execlp("./sched","./sched",MQ1,MQ2,NULL);
+    execlp("xterm", "xterm", "-T","Scheduler","-hold" ,"-e","./sched",MQ1,MQ2,NULL);
     } else {
         if (fork() == 0) {
 
             // child process to execute MMU using exec
             // pass MQ2,MQ3,SM1,SM2 to MMU
             // execlp("./mmu","./mmu",MQ2,MQ3,SM1,SM2,frames,NULL);
-            execlp("xterm", "xterm", "-T","MMU", "-e", "./mmu",MQ2,MQ3,SM1,SM2,frames,kprocs,NULL);
+            execlp("xterm", "xterm", "-T", "MMU","-hold", "-e", "./mmu", MQ2, MQ3, SM1, SM2, frames, kprocs, NULL);
+
+
         } else {
 
             for (int i = 0; i < k; i++) {
@@ -123,27 +127,21 @@ int main() {
                     pages_per_table[i] = m_i;
                     PT[i]->max_len = m_i;
                     // generate reference string
-                    referenceString R_i;
-                    R_i.len = (rand() % (9 * m_i)) + 2 * m_i;
-                    R_i.arr = getReferenceString(R_i.len, m_i, p);
-                    
+                    key = ftok(".", i+k+10);
+                    int ref_shmid = shmget(key, sizeof(referenceString), 0666 | IPC_CREAT);
+                    referenceString* R_i = (referenceString*)shmat(ref_shmid, 0, 0);
+                    R_i->len = (rand() % (9 * m_i)) + 2 * m_i;
+                    R_i->arr = getReferenceString(R_i->len, m_i, p);
+
                     // send index i,MQ1, MQ3 and reference string to the process
                     // number of arguments is 4 + length of reference string
-
-                    int len = R_i.len+5;
-
-                    char* arg_list[len];
-                    sprintf(arg_list[0], "%s", "./process");
-                    sprintf(arg_list[1], "%d", i);
-                    sprintf(arg_list[2], "%s", MQ1);
-                    sprintf(arg_list[3], "%s", MQ3);
-
-                    for(int j=1;j < R_i.len;j++){
-                        sprintf(arg_list[j+3], "%d", R_i.arr[j]);
-                    }
-
-                    arg_list[len-1] = NULL;
-					execvp("./process",arg_list);
+                    char process_name[40]={0};
+                    sprintf(process_name,"Process_%d",i);
+                    char index[32]={0};
+                    char ref_shm_str[32]={0};
+                    sprintf(ref_shm_str,"%d",ref_shmid);
+                    sprintf(index,"%d",i);
+                    execlp("xterm","xterm","-T",process_name,"-hold", "-e","./process",index,MQ1,MQ3,ref_shm_str,NULL);
 
                 }
 

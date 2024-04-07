@@ -53,6 +53,9 @@ void PageFaultHandler(int *FFL, int f, PageTable *PT, int page_number)
 int main(int argc, char *argv[])
 {
 
+    printf("PID = %d\n", getpid());
+    // FILE* fp1 = freopen("mmu_output.txt","w",stdout);
+    // FILE* fp2 = freopen("mmu_err.txt", "w", stderr);
     int MQ2, MQ3, SM1, SM2, f, k;
     MQ2 = atoi(argv[1]); // message queue to send to scheduler
     MQ3 = atoi(argv[2]); // message queue to receive from processes
@@ -76,6 +79,8 @@ int main(int argc, char *argv[])
 
     while (TRUE)
     {
+        printf("Waiting for page number\n");
+        sleep(3);
         msgrcv(MQ3, &msg1, sizeof(msg1), 0, 0);
         int process_index = msg1.process_index;
         int *shm_arr = (int *)shmat(SM1, NULL, 0); // shared memory segment for page table
@@ -174,4 +179,9 @@ int main(int argc, char *argv[])
 
         timestamp++;
     }
+
+    // fclose(fp1);
+    // fclose(fp2);
+
+
 }

@@ -13,15 +13,21 @@
 
 int main(int argc, char *argv[]) {
 
+printf("PID = %d\n", getpid());
+
+
 int MQ1 = atoi(argv[1]);
 int MQ2 = atoi(argv[2]);
 
     while (1) {
         // Wait until there's a process in the ready queue
+        printf("Wating for process...\n");
         struct msg_process msg;
         msgrcv(MQ1, &msg, sizeof(msg), 0, 0);
+        printf("Received process %d from ready queue\n", msg.process_index);
         // Send signal to start execution
-        usleep(250000);
+        sleep(5);
+        printf("Sending process %d with PID = %d to execution\n", msg.process_index, msg.process_pid);
         kill(msg.process_pid, SIGCONT);
 
         // Wait for message from MMU
